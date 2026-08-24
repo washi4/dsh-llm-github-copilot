@@ -34,8 +34,8 @@ flowchart TD
     end
 
     subgraph PREGH["🧪 发布前 GitHub 源安装测试"]
-        PULLMAIN --> CLEANGH["清理 profile slot\n删除 package.json 条目\n删除 node_modules/@lujianjun19\n临时设置 git URL 重写（HTTPS 授权）"]
-        CLEANGH --> TESTGH["测试 GitHub 源安装（装 main 源码）\ndsh plugin --profile web add\ngithub:lujianjun19/dsh-llm-github-copilot -w"]
+        PULLMAIN --> CLEANGH["清理 profile slot\n删除 package.json 条目\n删除 node_modules/@washi4\n临时设置 git URL 重写（HTTPS 授权）"]
+        CLEANGH --> TESTGH["测试 GitHub 源安装（装 main 源码）\ndsh plugin --profile web add\ngithub:washi4/dsh-llm-github-copilot -w"]
         TESTGH --> VERIFYGH{"验证清单\n• 源码构建 lib/ 成功\n• cordis.patch.yml 存在\n• client.js id 正确\n• undici/deps 可 resolve\n• dump-config 识别插件"}
         VERIFYGH -- ❌ --> FIXGH["直接修复\n回到编辑阶段（未打 tag，无需升版）"]
         FIXGH --> CODE
@@ -59,8 +59,8 @@ flowchart TD
 
     subgraph POSTTEST["🧪 发布后 npm 安装测试"]
         CIPUB -- ✅ --> WAITCI["等待 CI: Release workflow\ncompleted | success"]
-        WAITCI --> CLEAN["清理 profile slot\n删除 package.json 条目\n删除 node_modules/@lujianjun19\n新版本加入 minimumReleaseAgeExclude"]
-        CLEAN --> TESTNPM["测试 npmjs 安装\ndsh plugin --profile web add\n@lujianjun19/dsh-llm-github-copilot@latest"]
+        WAITCI --> CLEAN["清理 profile slot\n删除 package.json 条目\n删除 node_modules/@washi4\n新版本加入 minimumReleaseAgeExclude"]
+        CLEAN --> TESTNPM["测试 npmjs 安装\ndsh plugin --profile web add\n@washi4/dsh-llm-github-copilot@latest"]
         TESTNPM --> VERIFYNPM{"验证清单\n• version 正确\n• cordis.patch.yml 存在\n• client.js id 正确\n• undici/deps 可 resolve\n• dump-config 识别插件"}
         VERIFYNPM -- ❌ --> HOTFIX
         VERIFYNPM -- ✅ --> DONE

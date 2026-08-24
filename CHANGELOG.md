@@ -100,7 +100,7 @@ All notable changes to this project are documented here. The project follows Sem
 - **Settings › GitHub Copilot tab: plugin version display**
   The bottom of the GitHub Copilot settings panel now shows the installed plugin
   version as a `Plugin version:` / `插件版本：` label followed by a clickable
-  `@lujianjun19/dsh-llm-github-copilot vX.Y.Z` link that opens the corresponding
+  `@washi4/dsh-llm-github-copilot vX.Y.Z` link that opens the corresponding
   GitHub Releases tag page. The version is injected at build time from
   `package.json` — no runtime API calls are needed.
 
@@ -283,7 +283,7 @@ All notable changes to this project are documented here. The project follows Sem
 ### Fixed
 
 - **Responses API: tool calls serialized as top-level `function_call` items**
-  ([#bug](https://github.com/lujianjun19/dsh-llm-github-copilot))
+  ([#bug](https://github.com/washi4/dsh-llm-github-copilot))
 
   When a conversation contained a prior assistant tool call (i.e. any second+
   turn using a tool), the adapter placed tool calls inside the assistant
@@ -321,7 +321,7 @@ All notable changes to this project are documented here. The project follows Sem
 ### Fixed
 
 - `client.js` module id was still `@deepseek-ai/dsh-llm-github-copilot`; updated
-  to `@lujianjun19/dsh-llm-github-copilot` to match the installed package name.
+  to `@washi4/dsh-llm-github-copilot` to match the installed package name.
   DSH rejected the bundle at browser startup with "loaded without registering".
 
 ## [0.3.4] - 2026-08-18

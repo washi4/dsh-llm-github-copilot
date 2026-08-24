@@ -139,7 +139,7 @@ done. Run the steps below in order.
 ```bash
 TOKEN=$(python3 ~/.pi/agent/skills/github-auth/scripts/get_token.py)
 curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://api.github.com/repos/lujianjun19/dsh-llm-github-copilot/actions/runs?per_page=3" \
+  "https://api.github.com/repos/washi4/dsh-llm-github-copilot/actions/runs?per_page=3" \
   | python3 -c "
 import sys,json
 for r in json.load(sys.stdin).get('workflow_runs',[]):
@@ -162,19 +162,19 @@ p['dependencies'] = {k:v for k,v in p['dependencies'].items() if 'lujianjun' not
 p['dsh']['profile']['bundles'] = [b for b in p['dsh']['profile']['bundles'] if 'lujianjun' not in b]
 open('package.json','w').write(json.dumps(p, indent=2)+'\n')
 "
-rm -rf node_modules/@lujianjun19
+rm -rf node_modules/@washi4
 ```
 
 ### 2. Test — install from npmjs
 
 ```bash
-dsh plugin --profile web add @lujianjun19/dsh-llm-github-copilot
+dsh plugin --profile web add @washi4/dsh-llm-github-copilot
 ```
 
 ### 3. Test — install from GitHub source
 
 ```bash
-dsh plugin --profile web add github:lujianjun19/dsh-llm-github-copilot -w
+dsh plugin --profile web add github:washi4/dsh-llm-github-copilot -w
 ```
 
 The `-w` flag and `allowBuilds` entry in `pnpm-workspace.yaml` are required;
@@ -185,7 +185,7 @@ both were added when the plugin was first registered and persist across installs
 After each install, confirm all of the following:
 
 ```bash
-PLUGIN=~/.dsh/profiles/web/node_modules/@lujianjun19/dsh-llm-github-copilot
+PLUGIN=~/.dsh/profiles/web/node_modules/@washi4/dsh-llm-github-copilot
 
 node -e "console.log('version:', require('$PLUGIN/package.json').version)"
 
@@ -210,7 +210,7 @@ dsh web --dump-config 2>&1 | grep -A2 'llm-github'
 ```
 
 Expected output for every check: version matches the released tag, `id` is
-`@lujianjun19/dsh-llm-github-copilot`, all three deps print `OK`, and
+`@washi4/dsh-llm-github-copilot`, all three deps print `OK`, and
 `dump-config` shows `llm-github-copilot` in the tree.
 
 ### 5. Known prerequisites

@@ -3,7 +3,7 @@ name: Release
 # Push a vX.Y.Z tag to build, test, and publish to npm via Trusted Publishing (OIDC).
 # No NPM_TOKEN secret required — npm authenticates via GitHub Actions OIDC.
 # Trusted Publisher must be configured on npmjs.com first:
-#   https://www.npmjs.com/package/@lujianjun19/dsh-llm-github-copilot → Settings → Trusted publishing
+#   https://www.npmjs.com/package/@washi4/dsh-llm-github-copilot → Settings → Trusted publishing
 
 on:
   push:
@@ -70,11 +70,11 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" \
             --title "dsh-llm-github-copilot $GITHUB_REF_NAME" \
-            --notes "Published to npm as \`@lujianjun19/dsh-llm-github-copilot@${GITHUB_REF_NAME#v}\`
+            --notes "Published to npm as \`@washi4/dsh-llm-github-copilot@${GITHUB_REF_NAME#v}\`
 
           **Install:**
           \`\`\`sh
-          dsh plugin --profile web add @lujianjun19/dsh-llm-github-copilot
+          dsh plugin --profile web add @washi4/dsh-llm-github-copilot
           \`\`\`
 
-          See [CHANGELOG.md](https://github.com/lujianjun19/dsh-llm-github-copilot/blob/main/CHANGELOG.md) for details."
+          See [CHANGELOG.md](https://github.com/washi4/dsh-llm-github-copilot/blob/main/CHANGELOG.md) for details."

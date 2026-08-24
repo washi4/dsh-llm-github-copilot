@@ -19,13 +19,13 @@ Sign in with your GitHub account and use every Copilot model — including GPT-4
 ### From npm (recommended)
 
 ```sh
-dsh plugin --profile web add @lujianjun19/dsh-llm-github-copilot
+dsh plugin --profile web add @washi4/dsh-llm-github-copilot
 ```
 
 ### From GitHub
 
 ```sh
-dsh plugin --profile web add github:lujianjun19/dsh-llm-github-copilot
+dsh plugin --profile web add github:washi4/dsh-llm-github-copilot
 ```
 
 pnpm 10 and newer block git dependency build scripts by default. If installation asks you to approve the package build, add the exact package key it reports to the profile's `pnpm-workspace.yaml`:
@@ -42,7 +42,7 @@ After installation, register the plugin in the profile's `cordis.patch.yml`:
 ```yaml
 - insert:
     - id: llm-github-copilot
-      name: '@lujianjun19/dsh-llm-github-copilot'
+      name: '@washi4/dsh-llm-github-copilot'
 ```
 
 Restart DSH to activate:
@@ -57,10 +57,10 @@ The DSH profile uses pnpm internally, and its lockfile pins the exact installed 
 
 ```sh
 # Using npm (simplest — no extra flags needed)
-npm install --prefix ~/.dsh/profiles/web @lujianjun19/dsh-llm-github-copilot@latest
+npm install --prefix ~/.dsh/profiles/web @washi4/dsh-llm-github-copilot@latest
 
 # Using pnpm
-pnpm add --dir ~/.dsh/profiles/web @lujianjun19/dsh-llm-github-copilot@latest --no-frozen-lockfile
+pnpm add --dir ~/.dsh/profiles/web @washi4/dsh-llm-github-copilot@latest --no-frozen-lockfile
 ```
 
 Then restart DSH:
@@ -176,7 +176,7 @@ After Host changes restart DSH; after Client-only changes a hard refresh (`Ctrl+
 
 ```sh
 cp -r ~/.dsh/plugin-backups/dsh-llm-github-copilot/<timestamp> \
-      ~/.dsh/profiles/web/node_modules/@lujianjun19/dsh-llm-github-copilot
+      ~/.dsh/profiles/web/node_modules/@washi4/dsh-llm-github-copilot
 dsh web
 ```
 
@@ -192,7 +192,7 @@ Your egress IP is restricted. Export `HTTPS_PROXY` pointing to a proxy that exit
 Transient network issue during device-code polling. Run `/copilot-login` again to get a fresh code (the old one is invalidated automatically).
 
 **`configurable provider "github-copilot" is already declared`**
-An older version of this plugin used the route name `github-copilot`, which conflicts with a DSH built-in. This version uses `github-copilot-official`. Verify that your `cordis.patch.yml` uses `id: llm-github-copilot` and `name: '@lujianjun19/dsh-llm-github-copilot'`.
+An older version of this plugin used the route name `github-copilot`, which conflicts with a DSH built-in. This version uses `github-copilot-official`. Verify that your `cordis.patch.yml` uses `id: llm-github-copilot` and `name: '@washi4/dsh-llm-github-copilot'`.
 
 **Token expired**
 No action needed. The plugin stores the long-lived GitHub OAuth token and refreshes the short-lived Copilot API token automatically before it expires. Only an explicit sign-out or token revocation requires a new `/copilot-login`.
