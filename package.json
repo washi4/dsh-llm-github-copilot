@@ -1,7 +1,7 @@
 {
-  "name": "@lujianjun19/dsh-llm-github-copilot",
+  "name": "@washi4/dsh-llm-github-copilot",
   "description": "GitHub Copilot adapter for the DeepSeek Harness LLM seam: OAuth device-flow sign-in, Copilot token exchange, and OpenAI-compatible chat completions against api.githubcopilot.com",
-  "version": "0.4.2",
+  "version": "0.4.2-washi.1",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
@@ -72,7 +72,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lujianjun19/dsh-llm-github-copilot.git"
+    "url": "git+https://github.com/washi4/dsh-llm-github-copilot.git"
   },
   "engines": {
     "node": ">=24"

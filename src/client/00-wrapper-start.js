@@ -1,5 +1,5 @@
 window.__ModuleLoader__.load({
-  id: "@lujianjun19/dsh-llm-github-copilot",
+  id: "@washi4/dsh-llm-github-copilot",
   factory: (require) => {
     var module = { exports: {} };
     var exports = module.exports;

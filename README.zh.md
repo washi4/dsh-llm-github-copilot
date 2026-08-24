@@ -19,13 +19,13 @@ GitHub Copilot LLM 适配器，适用于 [DeepSeek Harness](https://github.com/d
 ### 从 npm 安装（推荐）
 
 ```sh
-dsh plugin --profile web add @lujianjun19/dsh-llm-github-copilot
+dsh plugin --profile web add @washi4/dsh-llm-github-copilot
 ```
 
 ### 从 GitHub 安装
 
 ```sh
-dsh plugin --profile web add github:lujianjun19/dsh-llm-github-copilot
+dsh plugin --profile web add github:washi4/dsh-llm-github-copilot
 ```
 
 pnpm 10 及以上版本默认禁止 Git 依赖运行构建脚本。如果安装过程中提示需要批准构建，请将提示的包名加入该 profile 的 `pnpm-workspace.yaml`：
@@ -42,7 +42,7 @@ allowBuilds:
 ```yaml
 - insert:
     - id: llm-github-copilot
-      name: '@lujianjun19/dsh-llm-github-copilot'
+      name: '@washi4/dsh-llm-github-copilot'
 ```
 
 重启 DSH 使插件生效：
@@ -57,10 +57,10 @@ DSH profile 内部使用 pnpm 管理依赖，其 lockfile 会锁定已安装的�
 
 ```sh
 # 使用 npm（最简单，无需额外参数）
-npm install --prefix ~/.dsh/profiles/web @lujianjun19/dsh-llm-github-copilot@latest
+npm install --prefix ~/.dsh/profiles/web @washi4/dsh-llm-github-copilot@latest
 
 # 使用 pnpm
-pnpm add --dir ~/.dsh/profiles/web @lujianjun19/dsh-llm-github-copilot@latest --no-frozen-lockfile
+pnpm add --dir ~/.dsh/profiles/web @washi4/dsh-llm-github-copilot@latest --no-frozen-lockfile
 ```
 
 然后重启 DSH：
@@ -175,7 +175,7 @@ dsh plugin --profile web add .
 
 ```sh
 cp -r ~/.dsh/plugin-backups/dsh-llm-github-copilot/<时间戳> \
-      ~/.dsh/profiles/web/node_modules/@lujianjun19/dsh-llm-github-copilot
+      ~/.dsh/profiles/web/node_modules/@washi4/dsh-llm-github-copilot
 dsh web
 ```
 
