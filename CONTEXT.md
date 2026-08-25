@@ -24,6 +24,10 @@ chat-completions (`/chat/completions`) or the Responses API (`/responses`).
 Routing between them is per-model, driven by the catalog's advertised endpoints.
 _Avoid_: protocol (overloaded), API.
 
+**Request plan**:
+The ordered, Wire-neutral representation of conversation content prepared for a provider request. It preserves semantic roles, content order, tool results, tool calls, and Request-image references without adopting a Wire format's vocabulary.
+_Avoid_: provider payload, serialized request.
+
 **Durable image**:
 An admitted image retained in conversation history by immutable attachment reference, regardless of whether it originated from user input, a command, or a tool result.
 _Avoid_: uploaded image (not every image originates from an upload), raw image.

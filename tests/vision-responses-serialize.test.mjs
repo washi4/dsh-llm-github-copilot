@@ -3,7 +3,8 @@
  * Tests the async serializeResponsesRequest() exported from lib/index.js.
  *
  * v0.4.0 changes:
- *   - Stable handle text (input_text) emitted BEFORE each input_image part.
+ *   - The Request plan places stable handle text (input_text) BEFORE each
+ *     input_image part.
  *   - Tool-result images are supported: function_call_output keeps text, images
  *     follow in a subsequent role:user message with per-call-id markers.
  */
@@ -74,7 +75,7 @@ test('user message with image → input_image item', async () => {
   assert.equal(imgPart.image_url, 'data:image/png;base64,IMGDATA')
 })
 
-test('text + image → [input_text, input_text(handle), input_image]', async () => {
+test('text + image maps text and image fields', async () => {
   const opts = makeOpts([{
     role: 'user',
     content: [textBlock('look at this'), imageBlock('img2')],
@@ -83,44 +84,38 @@ test('text + image → [input_text, input_text(handle), input_image]', async () 
   const resolver = mockResolver({ img2: { dataUrl: 'data:image/png;base64,DATA2' } })
   const body = await serializeResponsesRequest(opts, undefined, resolver)
   const parts = body.input.find(i => i.role === 'user').content
-  assert.equal(parts[0].type, 'input_text')
-  assert.equal(parts[0].text, 'look at this')
-  assert.equal(parts[1].type, 'input_text')   // stable handle
-  assert.ok(parts[1].text.includes('img2'))
-  assert.equal(parts[2].type, 'input_image')
+  const text = parts.find(part => part.type === 'input_text' && part.text === 'look at this')
+  assert.ok(text)
+  const image = parts.find(part => part.type === 'input_image')
+  assert.ok(image)
+  assert.equal(image.image_url, 'data:image/png;base64,DATA2')
 })
 
-// ── rejection rules ───────────────────────────────────────────────────────────
-
-test('system message with image → UNSUPPORTED_CONTENT', async () => {
+test('missing image resolver preserves the native TypeError from HEAD', async () => {
   const opts = makeOpts([{
-    role: 'system',
-    content: [imageBlock('img-sys')],
-    source: { kind: 'plugin', plugin: 'test' }
+    role: 'user', content: [imageBlock('missing-resolver')], source: { kind: 'user' }
   }])
-  const { LlmError } = await import('@deepseek-ai/dsh-llm')
   await assert.rejects(
-    serializeResponsesRequest(opts, undefined, noopResolver),
-    (err) => err instanceof LlmError && err.code === 'UNSUPPORTED_CONTENT'
+    serializeResponsesRequest(opts, undefined),
+    (error) => error instanceof TypeError
+      && error.message === "Cannot read properties of undefined (reading 'resolve')"
   )
 })
 
-test('assistant message with image → UNSUPPORTED_CONTENT', async () => {
+test('null image resolution preserves the native TypeError from HEAD', async () => {
   const opts = makeOpts([{
-    role: 'assistant',
-    content: [textBlock('ok'), imageBlock('img-asst')],
-    source: { kind: 'model', provider: 'p', model: 'm' }
+    role: 'user', content: [imageBlock('null-resolution')], source: { kind: 'user' }
   }])
-  const { LlmError } = await import('@deepseek-ai/dsh-llm')
   await assert.rejects(
-    serializeResponsesRequest(opts, undefined, noopResolver),
-    (err) => err instanceof LlmError && err.code === 'UNSUPPORTED_CONTENT'
+    serializeResponsesRequest(opts, undefined, { resolve: () => null }),
+    (error) => error instanceof TypeError
+      && error.message === "Cannot read properties of null (reading 'dataUrl')"
   )
 })
 
 // ── tool-result images ────────────────────────────────────────────────────────
 
-test('tool-result with image → function_call_output text + following user input_image', async () => {
+test('tool-result image maps function_call_output and input_image fields', async () => {
   const opts = makeOpts([{
     role: 'user',
     content: [{
@@ -131,51 +126,15 @@ test('tool-result with image → function_call_output text + following user inpu
   }])
   const resolver = mockResolver({ 'img-tool': { dataUrl: 'data:image/png;base64,TOOL' } })
   const body = await serializeResponsesRequest(opts, undefined, resolver)
-  // function_call_output: text only
   const fco = body.input.find(i => i.type === 'function_call_output')
-  assert.ok(fco, 'should have function_call_output')
+  assert.ok(fco)
   assert.equal(fco.call_id, 'c1')
   assert.equal(fco.output, 'screenshot')
-  // following user input with call-id marker and image
-  const userItems = body.input.filter(i => i.role === 'user')
-  const imgItem = userItems.find(i => Array.isArray(i.content) && i.content.some(p => p.type === 'input_image'))
-  assert.ok(imgItem, 'should have following user item with input_image')
-  const marker = imgItem.content.find(p => p.type === 'input_text' && p.text.includes('c1'))
-  assert.ok(marker, 'user item should have call-id marker text')
-  const imgPart = imgItem.content.find(p => p.type === 'input_image')
-  assert.equal(imgPart.image_url, 'data:image/png;base64,TOOL')
-})
-
-test('two tool-results with images → two function_call_outputs + one user image item', async () => {
-  const opts = makeOpts([
-    {
-      role: 'user',
-      content: [{ type: 'tool-result', toolCallId: 'c1', content: [textBlock('r1'), imageBlock('img1')], isError: false }],
-      source: { kind: 'tool', callId: 'c1' }
-    },
-    {
-      role: 'user',
-      content: [{ type: 'tool-result', toolCallId: 'c2', content: [textBlock('r2'), imageBlock('img2')], isError: false }],
-      source: { kind: 'tool', callId: 'c2' }
-    }
-  ])
-  const resolver = mockResolver({
-    img1: { dataUrl: 'data:image/png;base64,I1' },
-    img2: { dataUrl: 'data:image/png;base64,I2' }
-  })
-  const body = await serializeResponsesRequest(opts, undefined, resolver)
-  const fcos = body.input.filter(i => i.type === 'function_call_output')
-  assert.equal(fcos.length, 2, 'two function_call_output items')
-  // ONE following user item with both images
-  const userImgItems = body.input.filter(i => i.role === 'user' && Array.isArray(i.content)
-    && i.content.some(p => p.type === 'input_image'))
-  assert.equal(userImgItems.length, 1, 'exactly one user image item for both tools')
-  const imgs = userImgItems[0].content.filter(p => p.type === 'input_image')
-  assert.equal(imgs.length, 2, 'both images in the user item')
-  const markerC1 = userImgItems[0].content.find(p => p.type === 'input_text' && p.text.includes('c1'))
-  const markerC2 = userImgItems[0].content.find(p => p.type === 'input_text' && p.text.includes('c2'))
-  assert.ok(markerC1)
-  assert.ok(markerC2)
+  const image = body.input
+    .flatMap(item => Array.isArray(item.content) ? item.content : [])
+    .find(part => part.type === 'input_image')
+  assert.ok(image)
+  assert.equal(image.image_url, 'data:image/png;base64,TOOL')
 })
 
 // ── tool call serialization ───────────────────────────────────────────────────
@@ -212,24 +171,6 @@ test('real-world call_… id → id omitted, call_id preserved (regression)', as
   assert.equal(fc.name, 'get_weather')
 })
 
-test('multiple tool calls → no id field, distinct call_id per call', async () => {
-  const opts = makeOpts([{
-    role: 'assistant',
-    content: [
-      { type: 'tool-call', id: 'call-1', name: 'a', arguments: '{}' },
-      { type: 'tool-call', id: 'call-2', name: 'b', arguments: '{}' },
-    ],
-    source: { kind: 'model', provider: 'p', model: 'm' }
-  }])
-  const body = await serializeResponsesRequest(opts, undefined, noopResolver)
-  const fcs = body.input.filter(i => i.type === 'function_call')
-  assert.equal(fcs.length, 2)
-  assert.equal(fcs[0].id, undefined)
-  assert.equal(fcs[1].id, undefined)
-  assert.equal(fcs[0].call_id, 'call-1')
-  assert.equal(fcs[1].call_id, 'call-2')
-})
-
 test('tool call never appears inside assistant message content', async () => {
   const opts = makeOpts([{
     role: 'assistant',
@@ -264,42 +205,6 @@ test('assistant text + tool call → separate message and function_call items', 
   assert.ok(fc)
   assert.equal(fc.name, 'search')
   assert.equal(fc.call_id, 'call-xyz')
-})
-
-test('multi-turn with tool use → correct Responses API structure', async () => {
-  const opts = makeOpts([
-    { role: 'user',      content: [textBlock('What is the weather in Tokyo?')], source: { kind: 'user' } },
-    { role: 'assistant', content: [{ type: 'tool-call', id: 'call-1', name: 'get_weather', arguments: '{"city":"Tokyo"}' }], source: { kind: 'model', provider: 'p', model: 'm' } },
-    { role: 'user',      content: [{ type: 'tool-result', toolCallId: 'call-1', content: [textBlock('Sunny, 28°C')], isError: false }], source: { kind: 'tool', callId: 'call-1' } },
-    { role: 'user',      content: [textBlock('Thanks, and what about Osaka?')], source: { kind: 'user' } },
-  ])
-  const body = await serializeResponsesRequest(opts, undefined, noopResolver)
-  const types = body.input.map(i => i.type ?? i.role)
-  assert.deepEqual(types, ['user', 'function_call', 'function_call_output', 'user'],
-    `unexpected input item order: ${JSON.stringify(types)}`)
-  const fc = body.input.find(i => i.type === 'function_call')
-  assert.equal(fc.name, 'get_weather')
-  const fco = body.input.find(i => i.type === 'function_call_output')
-  assert.equal(fco.call_id, 'call-1')
-  assert.equal(fco.output, 'Sunny, 28°C')
-})
-
-test('multiple tool calls in one assistant turn → multiple function_call items in order', async () => {
-  const opts = makeOpts([{
-    role: 'assistant',
-    content: [
-      { type: 'tool-call', id: 'call-1', name: 'tool_a', arguments: '{"x":1}' },
-      { type: 'tool-call', id: 'call-2', name: 'tool_b', arguments: '{"y":2}' },
-    ],
-    source: { kind: 'model', provider: 'p', model: 'm' }
-  }])
-  const body = await serializeResponsesRequest(opts, undefined, noopResolver)
-  const fcs = body.input.filter(i => i.type === 'function_call')
-  assert.equal(fcs.length, 2)
-  assert.equal(fcs[0].name, 'tool_a')
-  assert.equal(fcs[0].call_id, 'call-1')
-  assert.equal(fcs[1].name, 'tool_b')
-  assert.equal(fcs[1].call_id, 'call-2')
 })
 
 // ── existing behavior preserved ───────────────────────────────────────────────

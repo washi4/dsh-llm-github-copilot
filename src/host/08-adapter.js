@@ -116,7 +116,12 @@ var GitHubCopilotAdapter = class extends LlmAdapter {
     const requestOptions = projection != null
       ? { ...options, messages: projection.messages }
       : options;
-    const body = await protocol.serialize(requestOptions, wire, projection ?? noopImageResolver);
+    const imageResolver = projection ?? noopImageResolver;
+    const requestPlan = await buildRequestPlan({
+      messages: requestOptions.messages,
+      imageResolver
+    });
+    const body = await protocol.serialize(requestOptions, wire, requestPlan);
     const payload = JSON.stringify(body);
     const headers = {
       authorization: `Bearer ${connection.apiToken}`,
@@ -163,4 +168,3 @@ var GitHubCopilotAdapter = class extends LlmAdapter {
   }
 };
 //#endregion
-
