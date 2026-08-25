@@ -132,11 +132,11 @@
               text("pluginVersion"),
               " ",
               jsx("a", {
-                href: `https://github.com/lujianjun19/dsh-llm-github-copilot/releases/tag/v${PLUGIN_VERSION}`,
+                href: `https://github.com/washi4/dsh-llm-github-copilot/releases/tag/v${PLUGIN_VERSION}`,
                 target: "_blank",
                 rel: "noreferrer",
                 style: css.versionLink,
-                children: `@lujianjun19/dsh-llm-github-copilot v${PLUGIN_VERSION}`
+                children: `@washi4/dsh-llm-github-copilot v${PLUGIN_VERSION}`
               })
             ]
           }),

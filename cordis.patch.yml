@@ -3,4 +3,4 @@
 # profile bundle stack; the user's cordis.patch.yml may override config by id.
 - insert:
     - id: llm-github-copilot
-      name: '@lujianjun19/dsh-llm-github-copilot'
+      name: '@washi4/dsh-llm-github-copilot'

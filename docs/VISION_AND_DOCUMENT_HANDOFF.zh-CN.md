@@ -7,7 +7,7 @@
 当前仓库状态：
 
 ```text
-插件版本：@lujianjun19/dsh-llm-github-copilot 0.3.10
+插件版本：@washi4/dsh-llm-github-copilot 0.3.10
 当前实现基线：@deepseek-ai/dsh 0.1.0-rc.6
 当前自动化测试：86 项通过
 当前已实现：动态视觉 catalog、用户图片 Chat/Responses 序列化、基础模型限制校验
