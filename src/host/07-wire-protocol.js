@@ -9,7 +9,7 @@
  * to this interface — path/serialize/translate can no longer drift apart.
  *
  * Interface: { path: string, serialize, translate }
- *   serialize(options, wire, imageResolver) → Promise<object>  (request body)
+ *   serialize(options, wire, requestPlan) → object             (request body)
  *   translate(responseBody)                → AsyncIterable<StreamChunk>
  *
  * @module dsh-llm-github-copilot/wire-protocol
@@ -19,8 +19,8 @@
 function chatProtocol() {
   return {
     path: "/chat/completions",
-    serialize: (options, wire, imageResolver) =>
-      serializeRequest(options, wire, imageResolver),
+    serialize: (options, wire, requestPlan) =>
+      serializeRequestFromPlan(options, wire, requestPlan),
     translate: (body) =>
       translate(traceSse(parseSse(body), "chat"))
   };
@@ -34,8 +34,8 @@ function chatProtocol() {
 function responsesProtocol(supportsReasoning) {
   return {
     path: "/responses",
-    serialize: (options, wire, imageResolver) =>
-      serializeResponsesRequest(options, wire, imageResolver, supportsReasoning),
+    serialize: (options, wire, requestPlan) =>
+      serializeResponsesRequestFromPlan(options, wire, supportsReasoning, requestPlan),
     translate: (body) =>
       translateResponses(traceSse(parseSse(body, false), "responses"))
   };

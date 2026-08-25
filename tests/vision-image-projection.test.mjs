@@ -7,7 +7,7 @@
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { prepareRequestImages } from '../lib/index.js'
+import { buildRequestPlan, prepareRequestImages } from '../lib/index.js'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -409,4 +409,77 @@ test('tool-result image is prepared via readImageRequest', async () => {
   const r = result.resolve(makeRef('tool-img'))
   assert.ok(r, 'tool-result image should resolve')
   assert.match(r.dataUrl, /^data:image\/png;base64,/)
+})
+
+test('nested tool-result images remain opaque like HEAD projection', async () => {
+  const nested = {
+    type: 'tool-result',
+    toolCallId: 'nested-call',
+    content: [imageBlock('nested-img')]
+  }
+  const msgs = [
+    userMsg([imageBlock('old-img')], 'model'),
+    toolMsg('outer-call', [nested])
+  ]
+  const store = makeStore({
+    'old-img': {},
+    'nested-img': {}
+  })
+  const model = { id: 'm', vision: { maxImages: 1 } }
+  const result = await prepareRequestImages({
+    messages: msgs,
+    attachmentStore: store,
+    signal: undefined,
+    ...defaultOpts({ model })
+  })
+
+  assert.equal(result.resolve(makeRef('nested-img')), null)
+  assert.equal(result.messages[1].content[0].content[0].content[0].attachment.attachmentId, 'nested-img')
+  assert.equal(
+    result.messages[0].content.some(block => block.type === 'text' && block.text.includes('omitted')),
+    true
+  )
+})
+
+test('historical system and assistant image projection remains offloadable', async () => {
+  for (const role of ['system', 'assistant']) {
+    const messages = [
+      {
+        role,
+        content: [textBlock('historical'), imageBlock('old-image')],
+        source: role === 'system'
+          ? { kind: 'plugin', plugin: 'test' }
+          : { kind: 'model', provider: 'p', model: 'm' }
+      },
+      userMsg([imageBlock('current-image')])
+    ]
+    const store = makeStore({
+      'old-image': {},
+      'current-image': {}
+    })
+    const projection = await prepareRequestImages({
+      messages,
+      attachmentStore: store,
+      signal: undefined,
+      ...defaultOpts({ model: { id: 'm', vision: { maxImages: 1 } } })
+    })
+
+    assert.equal(projection.resolve(makeRef('old-image')), null)
+    assert.equal(
+      projection.messages[0].content.some(block => block.type === 'image'),
+      false
+    )
+    assert.equal(
+      projection.messages[0].content.some(block => block.type === 'text' && block.text.includes('omitted')),
+      true
+    )
+    const plan = await buildRequestPlan({
+      messages: projection.messages,
+      imageResolver: projection
+    })
+    assert.deepEqual(
+      plan.entries.map(entry => entry.type),
+      [role, 'user']
+    )
+  }
 })

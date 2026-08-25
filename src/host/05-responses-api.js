@@ -6,41 +6,40 @@
  * with Responses input items and streaming events.
  * @module dsh-llm-github-copilot/responses
  */
-/** Serialize the conversation into Responses `input` items. */
-async function serializeResponsesMessages(messages, imageResolver) {
+function responsesPlanText(content) {
+  return content.filter((block) => block.type === "text").map((block) => block.text).join("");
+}
+
+/**
+ * Serialize one user content block list that may contain images for the
+ * Responses API. Pure-text content produces a single input_text item;
+ * mixed or image-only content produces an ordered array of input_text and
+ * input_image items preserving the original block order.
+ * The Request plan has already inserted stable handle text before images.
+ */
+function serializeResponsesUserContent(content) {
+  const hasImage = content.some((block) => block.type === "image");
+  if (!hasImage) return [{ type: "input_text", text: responsesPlanText(content) || "" }];
+  const parts = [];
+  for (const block of content) {
+    if (block.type === "text") {
+      if (block.text.length > 0) parts.push({ type: "input_text", text: block.text });
+    } else if (block.type === "image") {
+      const image = block.requestImage;
+      parts.push({ type: "input_image", image_url: image.dataUrl });
+    }
+  }
+  return parts;
+}
+
+/** Map the semantic Request plan into Responses input items. */
+function serializeResponsesPlan(plan) {
   const input = [];
-  // Buffer for images from consecutive tool-result messages.
-  let pendingToolImages = [];
-
-  const flushToolImages = () => {
-    if (pendingToolImages.length === 0) return;
-    const content = [];
-    for (const { callId, handle, imageUrl } of pendingToolImages) {
-      content.push({ type: "input_text", text: `Image associated with tool call ${callId}:` });
-      if (handle) content.push({ type: "input_text", text: handle });
-      content.push({ type: "input_image", image_url: imageUrl });
-    }
-    input.push({ role: "user", content });
-    pendingToolImages = [];
-  };
-
-  for (const message of messages) {
-    if (message.role === "system") {
-      flushToolImages();
-      assertTextOnly(message.content, "system");
-      input.push({ role: "system", content: [{ type: "input_text", text: flattenText(message.content) }] });
-      continue;
-    }
-    if (message.role === "assistant") {
-      flushToolImages();
-      assertTextOnly(message.content, "assistant");
-      const text = flattenText(message.content);
-      const toolCallBlocks = message.content.filter((block) => block.type === "tool-call");
-      // In the Responses API, assistant text goes into an OutputMessage (type: "message"),
-      // while tool calls are top-level `function_call` items — NOT nested inside the
-      // message's content array (the only valid content types there are `output_text`
-      // and `refusal`).  Mixing tool calls into content produces the server error:
-      //   "Invalid value: 'output_tool_call'. Supported values are: 'output_text', ..."
+  for (const entry of plan.entries) {
+    if (entry.type === "system") {
+      input.push({ role: "system", content: [{ type: "input_text", text: responsesPlanText(entry.content) }] });
+    } else if (entry.type === "assistant") {
+      const text = responsesPlanText(entry.content);
       if (text.length > 0) {
         input.push({
           type: "message",
@@ -48,89 +47,39 @@ async function serializeResponsesMessages(messages, imageResolver) {
           content: [{ type: "output_text", text }]
         });
       }
-      for (const block of toolCallBlocks) {
+      for (const call of entry.content.filter((block) => block.type === "tool-call")) {
         input.push({
           type: "function_call",
-          // The `id` field is omitted on purpose.  `FunctionToolCall`'s required
-          // fields are only `type`/`call_id`/`name`/`arguments`; `id` is the
-          // API-generated item id (`fc_...`) and is NOT required when replaying
-          // history.  The harness ToolCallBlock carries only the provider-issued
-          // `call_id` (`call_...`) — translate() drops the original `fc_...` item
-          // id — and that `call_id` is what correlates the call with its matching
-          // `function_call_output`.  Sending `id` forces the server to validate it
-          // ("Expected an ID that begins with 'fc'"), so we simply omit it.
-          call_id: block.id,
-          name: block.name,
-          arguments: block.arguments
+          call_id: call.id,
+          name: call.name,
+          arguments: call.arguments
         });
       }
-      continue;
-    }
-    const toolResults = message.content.filter((block) => block.type === "tool-result");
-    const userBlocks = message.content.filter((block) => block.type !== "tool-result");
-
-    if (toolResults.length > 0) {
-      // function_call_output: text only; images go to pendingToolImages.
-      for (const result of toolResults) {
-        input.push({
-          type: "function_call_output",
-          call_id: result.toolCallId,
-          output: flattenText(result.content) || "(no output)"
-        });
-        for (const block of result.content) {
-          if (block.type === "image") {
-            const resolved = await imageResolver.resolve(block.attachment);
-            pendingToolImages.push({
-              callId: result.toolCallId,
-              handle: resolved?.handle,
-              imageUrl: resolved.dataUrl
-            });
-          }
+    } else if (entry.type === "tool-output") {
+      input.push({
+        type: "function_call_output",
+        call_id: entry.toolCallId,
+        output: responsesPlanText(entry.content) || "(no output)"
+      });
+    } else if (entry.type === "user") {
+      input.push({ role: "user", content: serializeResponsesUserContent(entry.content) });
+    } else if (entry.type === "tool-image-batch") {
+      const content = [];
+      for (const block of entry.content) {
+        if (block.type === "text") content.push({ type: "input_text", text: block.text });
+        else if (block.type === "image") {
+          content.push({ type: "input_image", image_url: block.requestImage.dataUrl });
         }
       }
-    }
-
-    const text = flattenText(userBlocks);
-    const hasImages = userBlocks.some((b) => b.type === "image");
-    if (userBlocks.length > 0 && (text.length > 0 || hasImages)) {
-      flushToolImages();
-      const contentParts = await serializeResponsesUserContent(userBlocks, imageResolver);
-      input.push({ role: "user", content: contentParts });
-    } else if (toolResults.length === 0) {
-      flushToolImages();
-      input.push({ role: "user", content: [{ type: "input_text", text: "" }] });
+      input.push({ role: "user", content });
     }
   }
-  flushToolImages();
   return input;
 }
-/**
- * Serialize one user content block list that may contain images for the
- * Responses API. Pure-text content produces a single input_text item;
- * mixed or image-only content produces an ordered array of input_text and
- * input_image items preserving the original block order.
- * Each image block is preceded by its stable handle text (input_text).
- */
-async function serializeResponsesUserContent(blocks, imageResolver) {
-  const hasImage = blocks.some((b) => b.type === "image");
-  if (!hasImage) return [{ type: "input_text", text: flattenText(blocks) || "" }];
-  const parts = [];
-  for (const block of blocks) {
-    if (block.type === "text") {
-      if (block.text.length > 0) parts.push({ type: "input_text", text: block.text });
-    } else if (block.type === "image") {
-      const resolved = await imageResolver.resolve(block.attachment);
-      // Emit stable handle text BEFORE the input_image part.
-      if (resolved?.handle) parts.push({ type: "input_text", text: resolved.handle });
-      parts.push({ type: "input_image", image_url: resolved.dataUrl });
-    }
-    // Reasoning and unknown block types are silently skipped.
-  }
-  return parts;
-}
-/** Build the full Responses wire request body. */
-async function serializeResponsesRequest(options, wire, imageResolver, supportsReasoning = false) {
-  const input = await serializeResponsesMessages(options.messages, imageResolver);
+
+/** Map a prebuilt Request plan into the full Responses wire request body. */
+function serializeResponsesRequestFromPlan(options, wire, supportsReasoning, plan) {
+  const input = serializeResponsesPlan(plan);
   if (options.system !== void 0) input.unshift({ role: "system", content: [{ type: "input_text", text: options.system }] });
   const tools = options.tools?.map((tool) => ({
     type: "function",
@@ -159,6 +108,15 @@ async function serializeResponsesRequest(options, wire, imageResolver, supportsR
     ...options.stop !== void 0 ? { stop: options.stop } : {},
     ...reasoningParam
   };
+}
+
+/** Build the full Responses wire request body. */
+async function serializeResponsesRequest(options, wire, imageResolver, supportsReasoning = false) {
+  const plan = await buildRequestPlan({
+    messages: options.messages,
+    imageResolver
+  });
+  return serializeResponsesRequestFromPlan(options, wire, supportsReasoning, plan);
 }
 function mapResponsesUsage(usage) {
   const input = usage?.input_tokens ?? 0;
@@ -306,4 +264,3 @@ async function* translateResponses(payloads) {
   yield* blocks.finish({ usage, reason: finishReason, failure });
 }
 //#endregion
-
