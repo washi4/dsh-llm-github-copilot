@@ -29,9 +29,10 @@
 const BASE64_EXPANSION = (bytes) => Math.ceil(bytes / 3) * 4;
 
 /**
- * Walk every image block in message order, including nested tool-result content,
- * invoking `visit(attachmentRef, sourceKind)` per occurrence. The single shared
- * traversal used by occurrence counting, unique-ref collection, and protection.
+ * Walk image blocks for this module's occurrence, unique-ref, and protection
+ * bookkeeping exactly as the pre-Request-plan serializers did: top-level images
+ * and images directly inside top-level tool results. A nested tool result is
+ * intentionally opaque to these local collections.
  */
 function walkImages(messages, visit) {
   for (const msg of messages) {
