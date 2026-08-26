@@ -110,6 +110,18 @@ test('rendered settings output distinguishes available, unlimited, and unavailab
   assert.match(unavailable, /Credits.*Credit usage is unavailable/)
 })
 
+test('rendered Credits usage rounds fractional percentages for display', async () => {
+  const rendered = await loadSettingsComponent({
+    authenticated: true,
+    state: 'authenticated',
+    models: [],
+    modelCount: 0,
+    credits: { state: 'available', usedPercent: 0.09999999999999432 }
+  })
+  assert.match(rendered, /Credits.*0% used/)
+  assert.doesNotMatch(rendered, /0\.099/)
+})
+
 test('Credits reset dates use the active Harness locale with an English fallback', async () => {
   const source = await read('05-common-components.js')
   assert.match(source, /function formatCreditsResetDate\(value\)/)

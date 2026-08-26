@@ -49,7 +49,7 @@
           style: css.creditsCard,
           children: [
             jsx("h3", { style: css.creditsTitle, children: text("creditsTitle") }),
-            jsx("p", { style: css.creditsValue, children: text("creditsUsed", { percent: usedPercent }) }),
+            jsx("p", { style: css.creditsValue, children: text("creditsUsed", { percent: Math.round(usedPercent) }) }),
             jsx("div", {
               role: "progressbar",
               "aria-label": text("creditsTitle"),
