@@ -9,7 +9,7 @@
 
       const refresh = async () => {
         try {
-          const next = await request("/status");
+          const next = await request("/status?refresh=1");
           setStatus(next);
           setError(void 0);
           return next;
@@ -119,7 +119,8 @@
                         : jsx("ul", {
                             style: css.models,
                             children: models.map((model) => jsx("li", { style: css.model, children: model.name === model.id ? model.id : `${model.name} (${model.id})` }, model.id))
-                          })
+                          }),
+                      jsx(CreditsCard, { credits: status.credits })
                     ]
                   })
                 : null
@@ -156,4 +157,3 @@
         ]
       });
     }
-

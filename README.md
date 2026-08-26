@@ -115,7 +115,9 @@ export GITHUB_COPILOT_OAUTH_TOKEN=<your-github-oauth-token>
 
 **Automatic token refresh** — the short-lived Copilot API token is renewed transparently before it expires; no action required.
 
-**Settings page** — the plugin adds a dedicated **GitHub Copilot** section to the Harness Web settings UI (open DSH in your browser → click the gear icon → **GitHub Copilot**). From there you can sign in, view authentication status and the available model list, and sign out — no slash commands required.
+**Account Credits** — the GitHub Copilot settings page reads the account-level Premium request entitlement from GitHub's `copilot_internal/user` endpoint. It shows usage, remaining and total requests, reset date, and plan when available, or a neutral unavailable/unlimited state when GitHub does not provide a finite quota. Credits are cached briefly, refreshed by the Refresh status action, and never persisted.
+
+**Settings page** — the plugin adds a dedicated **GitHub Copilot** section to the Harness Web settings UI (open DSH in your browser → click the gear icon → **GitHub Copilot**). From there you can sign in, view authentication status, Credits, and the available model list, and sign out — no slash commands required.
 
 ## Configure
 

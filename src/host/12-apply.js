@@ -111,6 +111,31 @@ function apply(ctx, config) {
     };
   };
 
+  // ── account Credits cache (supplementary to auth/model status) ───────────
+  let creditsCache;
+  let creditsGeneration = 0;
+  const clearCreditsCache = () => {
+    creditsGeneration += 1;
+    creditsCache = void 0;
+  };
+  const validateCreditsResult = async (snapshot, raw, generation) => {
+    const result = await snapshot;
+    if (generation !== creditsGeneration) return unavailableCredits();
+    const currentRaw = await resolveRawOAuthToken();
+    if (currentRaw !== raw) return unavailableCredits();
+    return result;
+  };
+  const credits = async (raw, force = false) => {
+    const cached = creditsCache;
+    const generation = creditsGeneration;
+    if (!force && cached !== void 0 && cached.raw === raw && Date.now() < cached.at + CREDITS_TTL_MS) {
+      return validateCreditsResult(cached.snapshot, raw, generation);
+    }
+    const snapshot = fetchCredits(raw).catch(() => unavailableCredits());
+    creditsCache = { raw, at: Date.now(), snapshot };
+    return validateCreditsResult(snapshot, raw, generation);
+  };
+
   // ── adapter + registrations ──────────────────────────────────────────────
   const adapter = new GitHubCopilotAdapter({
     options,
@@ -138,6 +163,7 @@ function apply(ctx, config) {
     if (ref !== options().oauthTokenEnv) return;
     exchangeCache = void 0;
     catalogCache = void 0;
+    clearCreditsCache();
     registration.replace([PROVIDER]);
   });
   let registeredPolicy = options().retryPolicy;
@@ -214,6 +240,7 @@ function apply(ctx, config) {
           // fan-out is missed or races the next model-directory poll.
           exchangeCache = void 0;
           catalogCache = void 0;
+          clearCreditsCache();
           finish("authenticated");
           ctx.logger.info(`${name}: GitHub Copilot sign-in completed; token stored as ${options().oauthTokenEnv}`);
         } catch (error) {
@@ -236,20 +263,35 @@ function apply(ctx, config) {
     timer = setTimeout(tick, interval * 1000);
     activeTimers.add(timer);
   };
-  const authStatus = async () => {
+  const signedOutStatus = () => ({
+    authenticated: false,
+    credential: options().oauthTokenEnv,
+    ...publicFlow(authFlow) ?? { state: "signed-out" }
+  });
+  const authStatus = async (forceCredits = false, retried = false) => {
     const raw = await resolveRawOAuthToken();
-    if (raw === void 0) return {
-      authenticated: false,
-      credential: options().oauthTokenEnv,
-      ...publicFlow(authFlow) ?? { state: "signed-out" }
-    };
+    if (raw === void 0) {
+      clearCreditsCache();
+      return signedOutStatus();
+    }
     const models = await catalog();
+    const statusCredits = await credits(raw, forceCredits);
+    const currentRaw = await resolveRawOAuthToken();
+    if (currentRaw === void 0) {
+      clearCreditsCache();
+      return signedOutStatus();
+    }
+    if (currentRaw !== raw) {
+      if (!retried) return authStatus(forceCredits, true);
+      return signedOutStatus();
+    }
     return {
       authenticated: true,
       state: "authenticated",
       credential: options().oauthTokenEnv,
       modelCount: models.length,
-      models: models.map((model) => ({ id: model.id, name: model.name ?? model.id }))
+      models: models.map((model) => ({ id: model.id, name: model.name ?? model.id })),
+      credits: statusCredits
     };
   };
   const beginLogin = async () => {
@@ -276,6 +318,7 @@ function apply(ctx, config) {
     authFlow = { state: "signed-out" };
     exchangeCache = void 0;
     catalogCache = void 0;
+    clearCreditsCache();
     // credentials.unset triggers credentials/reference-updated after its durable commit;
     // the shared listener refreshes model directories back to the fallback
     // catalog. An already-absent credential needs no additional announcement.
@@ -298,7 +341,7 @@ function apply(ctx, config) {
       return;
     }
     try {
-      sendJson(res, 200, { ok: true, value: await action() });
+      sendJson(res, 200, { ok: true, value: await action(req) });
     } catch (error) {
       sendJson(res, 500, { ok: false, error: error instanceof Error ? error.message : String(error) });
     }
@@ -309,7 +352,10 @@ function apply(ctx, config) {
         wctx.webServer.register({
           kind: "exact",
           path: "/github-copilot-auth/status",
-          handler: webAction("GET", authStatus)
+          handler: webAction("GET", (req) => {
+            const url = new URL(req.url ?? "/", "http://localhost");
+            return authStatus(url.searchParams.get("refresh") === "1");
+          })
         }),
         wctx.webServer.register({
           kind: "exact",

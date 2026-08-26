@@ -16,7 +16,14 @@
       model: { breakInside: "avoid" },
       modalBody: { display: "flex", flexDirection: "column", gap: 14 },
       codeRow: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" },
-      versionLink: { color: "var(--dsw-alias-brand-primary)" }
+      versionLink: { color: "var(--dsw-alias-brand-primary)" },
+      creditsCard: { display: "flex", flexDirection: "column", gap: 12, padding: 16, border: "1px solid var(--dsw-alias-border-l2)", borderRadius: 10, background: "var(--dsw-alias-bg-layer-2)" },
+      creditsTitle: { margin: 0, fontSize: 15, lineHeight: "22px", fontWeight: 600, color: "var(--dsw-alias-label-primary)" },
+      creditsValue: { margin: 0, fontSize: 20, lineHeight: "28px", fontWeight: 600, color: "var(--dsw-alias-label-primary)" },
+      creditsMetric: { margin: 0, fontSize: 13, lineHeight: "20px", color: "var(--dsw-alias-label-secondary)" },
+      creditsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "4px 16px" },
+      creditsProgress: { height: 8, overflow: "hidden", borderRadius: 999, background: "var(--dsw-alias-bg-layer-3)" },
+      creditsProgressBar: { height: "100%", borderRadius: 999, background: "var(--dsw-alias-brand-primary)" }
     };
 
     async function request(path, method = "GET") {
@@ -36,4 +43,3 @@
       }
       return payload.value;
     }
-

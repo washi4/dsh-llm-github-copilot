@@ -22,6 +22,9 @@ const VERIFICATION_URI = "https://github.com/login/device";
 /** Endpoint that exchanges a GitHub token for a short-lived Copilot API token. */
 const TOKEN_EXCHANGE_URL = "https://api.github.com/copilot_internal/v2/token";
 
+/** Endpoint that reports the signed-in account's Copilot Credits entitlement. */
+const CREDITS_URL = "https://api.github.com/copilot_internal/user";
+
 /** VS Code's public GitHub App client id — produces ghu_* tokens that can be exchanged. */
 const OAUTH_CLIENT_ID = "Iv1.b507a08c87ecfe98";
 const OAUTH_SCOPE = "read:user";
@@ -56,6 +59,12 @@ const CATALOG_TTL_MS = 300000;
  * of leaving the model picker empty for the full positive TTL.
  */
 const NEGATIVE_CATALOG_TTL_MS = 5000;
+
+/** How long a normalized Credits snapshot is reused before rechecking GitHub. */
+const CREDITS_TTL_MS = 30000;
+
+/** Maximum time an optional Credits lookup may delay the status response. */
+const CREDITS_TIMEOUT_MS = 10000;
 
 /** Request-image overflow strategy applied when Provider/local limits are exceeded. */
 const DEFAULT_IMAGE_OVERFLOW_POLICY = "offload-oldest";
@@ -109,4 +118,3 @@ const CLAUDE_EFFORTS = [
   { id: "high", name: "High" }
 ];
 //#endregion
-
